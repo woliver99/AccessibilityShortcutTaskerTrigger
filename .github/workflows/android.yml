@@ -1,0 +1,97 @@
+name: Android CI
+
+on:
+  push:
+    branches: [ "master" ]
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write    # Required for creating releases and pushing commits
+
+    steps:
+      # 1. Check out the repository
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Ensure full history for version bumping
+
+      # 2. Prevent Infinite Loop by exiting if the commit is from GitHub Actions
+      - name: Prevent Infinite Loop
+        if: github.actor == 'github-actions[bot]'
+        run: |
+          echo "Commit is from GitHub Actions bot; exiting to prevent infinite loop."
+          exit 0
+
+      # 3. Set up JDK 11 (required for Gradle)
+      - name: Set up JDK 11
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+          cache: gradle
+
+      # 4. Grant execute permission for Gradle wrapper
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      # 5. Bump versionCode in build.gradle
+      - name: Bump versionCode
+        id: bump_version
+        run: |
+          # Path to your app's build.gradle
+          GRADLE_FILE="app/build.gradle"
+
+          # Extract current versionCode and versionName
+          VERSION_CODE=$(grep -E "versionCode\s+[0-9]+" "$GRADLE_FILE" | awk '{print $2}')
+          VERSION_NAME=$(grep -E "versionName\s+\"[^\"]+\"" "$GRADLE_FILE" | awk '{print $2}' | tr -d '"')
+
+          echo "Current versionCode: $VERSION_CODE"
+          echo "Current versionName: $VERSION_NAME"
+
+          # Increment versionCode
+          NEW_VERSION_CODE=$((VERSION_CODE + 1))
+          echo "New versionCode: $NEW_VERSION_CODE"
+
+          # Update build.gradle with the new versionCode
+          sed -i -E "s/(versionCode\s+)([0-9]+)/\1$NEW_VERSION_CODE/" "$GRADLE_FILE"
+
+          # Export the new versionCode and existing versionName as environment variables
+          echo "VERSION_CODE=$NEW_VERSION_CODE" >> $GITHUB_ENV
+          echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_ENV
+
+      # 6. Commit and push the versionCode change
+      - name: Commit versionCode changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add app/build.gradle
+          git commit -m "ci: bump versionCode to $VERSION_CODE [skip ci]" || echo "No changes to commit."
+          git push origin master || echo "No changes to push."
+
+      # 7. Build the release APK
+      - name: Build with Gradle
+        run: ./gradlew assembleRelease
+
+      # 8. Create a GitHub Release
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        with:
+          tag_name: "${{ env.VERSION_CODE }} - ${{ env.VERSION_NAME }}"
+          release_name: "Release ${{ env.VERSION_CODE }} - ${{ env.VERSION_NAME }}"
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 9. Upload the generated APK as a release asset
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: app/build/outputs/apk/release/app-release.apk
+          asset_name: "app-release-${{ env.VERSION_CODE }}-${{ env.VERSION_NAME }}.apk"
+          asset_content_type: application/vnd.android.package-archive
