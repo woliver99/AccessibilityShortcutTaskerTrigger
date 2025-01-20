@@ -80,8 +80,9 @@ jobs:
               id: create_release
               uses: actions/create-release@v1
               with:
-                  tag_name: "${{ env.VERSION_CODE }} - ${{ env.VERSION_NAME }}"
-                  release_name: "Release ${{ env.VERSION_CODE }} - ${{ env.VERSION_NAME }}"
+                  # Remove the spaces in the tag name
+                  tag_name: "v${{ env.VERSION_CODE }}-${{ env.VERSION_NAME }}"
+                  release_name: "Release v${{ env.VERSION_CODE }}-${{ env.VERSION_NAME }}"
                   draft: false
                   prerelease: false
               env:
