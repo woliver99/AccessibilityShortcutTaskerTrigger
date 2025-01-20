@@ -1,5 +1,5 @@
-# Tasker Plugin Library
+# How to use AccessibilityShortcutTaskerTrigger
 
-This git contains both the library and a sample plugin that you can base your own plugin on.
-
-Check out all implementation details [here](https://tasker.joaoapps.com/pluginslibrary.html).
+1. Install app
+2. Enable accessibility service shortcut inside of android settings
+3. Use basic event trigger inside of tasker  
