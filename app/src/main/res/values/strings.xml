@@ -53,4 +53,8 @@
     <string name="time_taken_description">The time it took for the background work to complete in millis</string>
     <string name="result">Result</string>
     <string name="result_description">Text user input in the dialog</string>
+
+
+    <string name="accessibility_service_description">Real description</string>
+    <string name="accessibility_service_label">Real label</string>
 </resources>
