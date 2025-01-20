@@ -96,3 +96,5 @@ jobs:
                   asset_path: app/build/outputs/apk/release/app-release.apk
                   asset_name: "app-release-${{ env.VERSION_CODE }}-${{ env.VERSION_NAME }}.apk"
                   asset_content_type: application/vnd.android.package-archive
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
